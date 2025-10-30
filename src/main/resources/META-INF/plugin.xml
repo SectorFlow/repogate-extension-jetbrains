@@ -1,0 +1,55 @@
+<idea-plugin>
+    <id>io.repogate.plugin</id>
+    <name>RepoGate</name>
+    <vendor email="support@repogate.io" url="https://repogate.io">RepoGate</vendor>
+
+    <description><![CDATA[
+    RepoGate is a security plugin that monitors and validates dependencies before they are added to your project.
+    
+    Features:
+    - Monitors package.json (npm), pom.xml (Maven), and build.gradle (Gradle) for dependency changes
+    - Validates dependencies against security vulnerabilities via RepoGate API
+    - Blocks installation of unapproved dependencies
+    - Provides quick removal of denied dependencies
+    - Configurable API token authentication
+    ]]></description>
+
+    <change-notes><![CDATA[
+    <h3>1.0.0</h3>
+    <ul>
+      <li>Initial release</li>
+      <li>Support for npm, Maven, and Gradle dependency monitoring</li>
+      <li>REST API integration for security validation</li>
+      <li>Configuration UI for API token</li>
+    </ul>
+    ]]></change-notes>
+
+    <!-- Product and plugin compatibility requirements -->
+    <depends>com.intellij.modules.platform</depends>
+    <depends>com.intellij.java</depends>
+    <depends optional="true" config-file="repogate-gradle.xml">org.jetbrains.plugins.gradle</depends>
+    <depends optional="true" config-file="repogate-maven.xml">org.jetbrains.idea.maven</depends>
+
+    <extensions defaultExtensionNs="com.intellij">
+        <!-- Application-level settings -->
+        <applicationConfigurable 
+            parentId="tools" 
+            instance="io.repogate.plugin.settings.RepoGateConfigurable"
+            id="io.repogate.plugin.settings.RepoGateConfigurable"
+            displayName="RepoGate"/>
+        <applicationService 
+            serviceImplementation="io.repogate.plugin.settings.RepoGateSettings"/>
+        
+        <!-- Notification group -->
+        <notificationGroup id="RepoGate Notifications" displayType="BALLOON" isLogByDefault="true"/>
+    </extensions>
+
+    <projectListeners>
+        <listener class="io.repogate.plugin.listeners.DependencyFileListener"
+                  topic="com.intellij.openapi.vfs.newvfs.BulkFileListener"/>
+    </projectListeners>
+
+    <actions>
+        <!-- Add your actions here -->
+    </actions>
+</idea-plugin>
