@@ -5,7 +5,7 @@ plugins {
 }
 
 group = "io.repogate"
-version = "1.0.0"
+version = "1.0.1"
 
 repositories {
     mavenCentral()
@@ -18,7 +18,7 @@ dependencies {
 
 // Configure Gradle IntelliJ Plugin
 intellij {
-    version.set("2023.2.5")
+    version.set("2024.3")
     type.set("IC") // Target IDE Platform: IC = IntelliJ IDEA Community Edition
     plugins.set(listOf("com.intellij.java", "org.jetbrains.plugins.gradle", "org.jetbrains.idea.maven"))
 }
@@ -34,8 +34,8 @@ tasks {
     }
 
     patchPluginXml {
-        sinceBuild.set("232")
-        untilBuild.set("242.*")
+        sinceBuild.set("241")
+        untilBuild.set("243.*")
     }
 
     buildSearchableOptions {
