@@ -71,26 +71,8 @@ public class DependencyValidator {
                             NotificationType.INFORMATION);
                 }
 
-                // Handle response
-                if (response.isApproved()) {
-                    dependency.setStatus(DependencyInfo.ApprovalStatus.APPROVED);
-                    showNotification("✓ RepoGate",
-                            String.format("Package '%s' is already APPROVED", dependency.getPackageName()),
-                            NotificationType.INFORMATION);
-                } else if ("denied".equalsIgnoreCase(response.getStatus())) {
-                    dependency.setStatus(DependencyInfo.ApprovalStatus.DENIED);
-                    showNotification("✗ RepoGate",
-                            String.format("Package '%s' is DENIED - %s", 
-                                    dependency.getPackageName(), response.getMessage()),
-                            NotificationType.ERROR);
-                } else {
-                    dependency.setStatus(DependencyInfo.ApprovalStatus.PENDING);
-                    showNotification("⏳ RepoGate",
-                            response.getMessage(),
-                            NotificationType.WARNING);
-                    // Start polling for approval status
-                    startPolling(dependency);
-                }
+                // Handle response based on new status values
+                handleDependencyResponse(dependency, response);
 
             } catch (Exception e) {
                 // Connection failed
@@ -98,16 +80,14 @@ public class DependencyValidator {
                 String errorMsg = e.getMessage();
                 
                 if (errorMsg != null && (errorMsg.contains("Connection refused") || 
-                                        errorMsg.contains("Failed to connect") ||
-                                        errorMsg.contains("Network") ||
-                                        errorMsg.contains("timeout"))) {
+                        errorMsg.contains("Failed to connect") || 
+                        errorMsg.contains("Network is unreachable"))) {
                     showNotification("⏳ RepoGate",
                             "Waiting for RepoGate service to start... Will retry automatically.",
                             NotificationType.WARNING);
                     
                     dependency.setStatus(DependencyInfo.ApprovalStatus.PENDING);
-                    // Start retry logic
-                    startRetrying(dependency);
+                    retryConnection(dependency);
                 } else {
                     showNotification("RepoGate: Connection Error",
                             "Unable to connect - " + errorMsg,
@@ -118,13 +98,71 @@ public class DependencyValidator {
         });
     }
 
-    /**
-     * Retry connection to RepoGate service
-     */
-    private void startRetrying(DependencyInfo dependency) {
+    private void handleDependencyResponse(DependencyInfo dependency, RepoGateApiClient.DependencyResponse response) {
+        String status = response.getStatus();
+        if (status == null) {
+            status = response.isApproved() ? "approved" : "pending";
+        }
+
+        switch (status.toLowerCase()) {
+            case "approved":
+                dependency.setStatus(DependencyInfo.ApprovalStatus.APPROVED);
+                showNotification("✓ RepoGate",
+                        String.format("%s - Package '%s' can be used.", 
+                                response.getMessage(), dependency.getPackageName()),
+                        NotificationType.INFORMATION);
+                break;
+
+            case "denied":
+                dependency.setStatus(DependencyInfo.ApprovalStatus.DENIED);
+                showNotification("✗ RepoGate",
+                        String.format("%s - Package '%s' should not be used.", 
+                                response.getMessage(), dependency.getPackageName()),
+                        NotificationType.ERROR);
+                break;
+
+            case "pending":
+                dependency.setStatus(DependencyInfo.ApprovalStatus.PENDING);
+                showNotification("⏳ RepoGate",
+                        response.getMessage(),
+                        NotificationType.WARNING);
+                // Start polling for approval status
+                startPolling(dependency);
+                break;
+
+            case "scanning":
+                dependency.setStatus(DependencyInfo.ApprovalStatus.SCANNING);
+                showNotification("🔍 RepoGate",
+                        response.getMessage(),
+                        NotificationType.INFORMATION);
+                // Start polling to check when scanning completes
+                startPolling(dependency);
+                break;
+
+            case "not_found":
+                dependency.setStatus(DependencyInfo.ApprovalStatus.NOT_FOUND);
+                showNotification("❓ RepoGate",
+                        response.getMessage(),
+                        NotificationType.WARNING);
+                // Start polling in case it gets added
+                startPolling(dependency);
+                break;
+
+            default:
+                // Fallback for unknown status
+                dependency.setStatus(DependencyInfo.ApprovalStatus.PENDING);
+                showNotification("⏳ RepoGate",
+                        response.getMessage() != null ? response.getMessage() : "Package status unknown",
+                        NotificationType.WARNING);
+                startPolling(dependency);
+                break;
+        }
+    }
+
+    private void retryConnection(DependencyInfo dependency) {
         String key = dependency.getPackageName() + ":" + dependency.getPackageManager();
         
-        // Cancel any existing retry task
+        // Cancel any existing polling
         ScheduledFuture<?> existingTask = pollingTasks.get(key);
         if (existingTask != null) {
             existingTask.cancel(false);
@@ -133,11 +171,14 @@ public class DependencyValidator {
         final int[] retryCount = {0};
         final int maxRetries = 30; // 5 minutes (30 * 10 seconds)
 
-        ScheduledFuture<?> retryTask = scheduler.scheduleAtFixedRate(() -> {
+        ScheduledFuture<?> task = scheduler.scheduleAtFixedRate(() -> {
             retryCount[0]++;
             
             if (retryCount[0] > maxRetries) {
-                pollingTasks.remove(key);
+                ScheduledFuture<?> currentTask = pollingTasks.remove(key);
+                if (currentTask != null) {
+                    currentTask.cancel(false);
+                }
                 showNotification("RepoGate: Connection Timeout",
                         String.format("Could not connect to service after %d attempts. Please check if the service is running.", maxRetries),
                         NotificationType.WARNING);
@@ -165,50 +206,33 @@ public class DependencyValidator {
                 }
 
                 // Stop retrying
-                ScheduledFuture<?> task = pollingTasks.remove(key);
-                if (task != null) {
-                    task.cancel(false);
+                ScheduledFuture<?> currentTask = pollingTasks.remove(key);
+                if (currentTask != null) {
+                    currentTask.cancel(false);
                 }
 
                 // Handle response
-                if (response.isApproved()) {
-                    dependency.setStatus(DependencyInfo.ApprovalStatus.APPROVED);
-                    showNotification("✓ RepoGate",
-                            String.format("Package '%s' is APPROVED", dependency.getPackageName()),
-                            NotificationType.INFORMATION);
-                } else if ("denied".equalsIgnoreCase(response.getStatus())) {
-                    dependency.setStatus(DependencyInfo.ApprovalStatus.DENIED);
-                    showNotification("✗ RepoGate",
-                            String.format("Package '%s' is DENIED", dependency.getPackageName()),
-                            NotificationType.ERROR);
-                } else {
-                    dependency.setStatus(DependencyInfo.ApprovalStatus.PENDING);
-                    // Start normal polling
-                    startPolling(dependency);
-                }
+                handleDependencyResponse(dependency, response);
 
             } catch (Exception e) {
                 // Still can't connect, will retry on next interval
-                System.out.println("RepoGate: Retry " + retryCount[0] + "/" + maxRetries + " - still waiting for service...");
+                System.out.println(String.format("RepoGate: Retry %d/%d - still waiting for service...", retryCount[0], maxRetries));
             }
         }, 10, 10, TimeUnit.SECONDS);
 
-        pollingTasks.put(key, retryTask);
+        pollingTasks.put(key, task);
     }
 
-    /**
-     * Start polling for dependency approval status
-     */
     private void startPolling(DependencyInfo dependency) {
         String key = dependency.getPackageName() + ":" + dependency.getPackageManager();
         
-        // Cancel any existing polling task
+        // Cancel any existing polling
         ScheduledFuture<?> existingTask = pollingTasks.get(key);
         if (existingTask != null) {
             existingTask.cancel(false);
         }
 
-        ScheduledFuture<?> pollingTask = scheduler.scheduleAtFixedRate(() -> {
+        ScheduledFuture<?> task = scheduler.scheduleAtFixedRate(() -> {
             try {
                 RepoGateSettings settings = RepoGateSettings.getInstance();
                 RepoGateApiClient client = new RepoGateApiClient(settings.getApiUrl(), settings.getApiToken());
@@ -218,66 +242,81 @@ public class DependencyValidator {
                         dependency.getPackageManager()
                 );
 
-                if (response.isApproved()) {
-                    dependency.setStatus(DependencyInfo.ApprovalStatus.APPROVED);
-                    pendingDependencies.remove(key);
-                    
-                    // Stop polling
-                    ScheduledFuture<?> task = pollingTasks.remove(key);
-                    if (task != null) {
-                        task.cancel(false);
-                    }
-                    
-                    showNotification("✓ RepoGate: Dependency Approved",
-                            String.format("Package '%s' has been APPROVED and can be used.",
-                                    dependency.getPackageName()),
-                            NotificationType.INFORMATION);
-                    
-                } else if ("denied".equalsIgnoreCase(response.getStatus())) {
-                    dependency.setStatus(DependencyInfo.ApprovalStatus.DENIED);
-                    pendingDependencies.remove(key);
-                    
-                    // Stop polling
-                    ScheduledFuture<?> task = pollingTasks.remove(key);
-                    if (task != null) {
-                        task.cancel(false);
-                    }
-                    
-                    // Show denial notification with option to remove
-                    ApplicationManager.getApplication().invokeLater(() -> {
-                        int result = Messages.showYesNoDialog(
-                                project,
-                                String.format("Package '%s' has been DENIED by your security team.\n\n%s\n\nThis package should not be used in production code.\n\nWould you like to remove it from your project?",
-                                        dependency.getPackageName(),
-                                        response.getMessage()),
-                                "✗ RepoGate: Dependency Denied",
-                                "Remove It",
-                                "I Understand",
-                                Messages.getWarningIcon()
-                        );
-                        
-                        if (result == Messages.YES) {
-                            showNotification("RepoGate: Manual Removal Required",
-                                    "Please manually remove the dependency from your configuration file.",
-                                    NotificationType.WARNING);
-                        }
-                    });
+                String status = response.getStatus();
+                if (status == null) {
+                    status = response.isApproved() ? "approved" : "pending";
                 }
-                
+
+                switch (status.toLowerCase()) {
+                    case "approved":
+                        dependency.setStatus(DependencyInfo.ApprovalStatus.APPROVED);
+                        pendingDependencies.remove(key);
+                        
+                        ScheduledFuture<?> currentTask = pollingTasks.remove(key);
+                        if (currentTask != null) {
+                            currentTask.cancel(false);
+                        }
+
+                        showNotification("✓ RepoGate",
+                                String.format("%s - Package '%s' can now be used.", 
+                                        response.getMessage(), dependency.getPackageName()),
+                                NotificationType.INFORMATION);
+                        break;
+
+                    case "denied":
+                        dependency.setStatus(DependencyInfo.ApprovalStatus.DENIED);
+                        pendingDependencies.remove(key);
+                        
+                        currentTask = pollingTasks.remove(key);
+                        if (currentTask != null) {
+                            currentTask.cancel(false);
+                        }
+
+                        ApplicationManager.getApplication().invokeLater(() -> {
+                            int result = Messages.showYesNoDialog(
+                                    project,
+                                    String.format("%s\n\nPackage '%s' should not be used in production code.",
+                                            response.getMessage(), dependency.getPackageName()),
+                                    "✗ RepoGate: Package Denied",
+                                    "I Understand",
+                                    "Remove It",
+                                    Messages.getErrorIcon()
+                            );
+                            
+                            if (result == Messages.NO) {
+                                showNotification("RepoGate",
+                                        "Please manually remove the dependency from your configuration file.",
+                                        NotificationType.INFORMATION);
+                            }
+                        });
+                        break;
+
+                    case "pending":
+                        // Still pending, continue polling
+                        dependency.setStatus(DependencyInfo.ApprovalStatus.PENDING);
+                        break;
+
+                    case "scanning":
+                        // Still scanning, continue polling
+                        dependency.setStatus(DependencyInfo.ApprovalStatus.SCANNING);
+                        break;
+
+                    case "not_found":
+                        // Package not found, continue polling in case it gets added
+                        dependency.setStatus(DependencyInfo.ApprovalStatus.NOT_FOUND);
+                        break;
+                }
+
             } catch (Exception e) {
-                // If connection lost during polling
                 if (!isConnected) {
                     System.err.println("RepoGate: Lost connection during polling");
                 }
             }
         }, 10, 10, TimeUnit.SECONDS);
 
-        pollingTasks.put(key, pollingTask);
+        pollingTasks.put(key, task);
     }
 
-    /**
-     * Show a notification to the user
-     */
     private void showNotification(String title, String content, NotificationType type) {
         ApplicationManager.getApplication().invokeLater(() -> {
             Notification notification = NotificationGroupManager.getInstance()
@@ -287,23 +326,13 @@ public class DependencyValidator {
         });
     }
 
-    /**
-     * Shutdown the validator
-     */
-    public void shutdown() {
+    public void dispose() {
         // Cancel all polling tasks
         for (ScheduledFuture<?> task : pollingTasks.values()) {
             task.cancel(false);
         }
         pollingTasks.clear();
-        
+        pendingDependencies.clear();
         scheduler.shutdown();
-        try {
-            if (!scheduler.awaitTermination(5, TimeUnit.SECONDS)) {
-                scheduler.shutdownNow();
-            }
-        } catch (InterruptedException e) {
-            scheduler.shutdownNow();
-        }
     }
 }

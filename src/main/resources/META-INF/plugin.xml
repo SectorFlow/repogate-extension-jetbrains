@@ -15,6 +15,16 @@
     ]]></description>
 
     <change-notes><![CDATA[
+    <h3>1.3.0</h3>
+    <ul>
+      <li>Added support for new /check endpoint status values</li>
+      <li>New status: 'scanning' - Package is being scanned for vulnerabilities</li>
+      <li>New status: 'not_found' - Package not found, submit request for review</li>
+      <li>Improved status messages with icons (✓, ✗, ⏳, 🔍, ❓)</li>
+      <li>Better handling of all approval workflow states</li>
+      <li>Enhanced polling to handle scanning and not_found states</li>
+      <li>Verified initial scan runs only once on first install</li>
+    </ul>
     <h3>1.2.2</h3>
     <ul>
       <li>CRITICAL: Removed InventoryReporter that was triggering /request for all packages</li>

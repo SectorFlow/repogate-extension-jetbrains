@@ -187,7 +187,7 @@ public class RepoGateApiClient {
         private String message;
         private String packageName;
         private String packageManager;
-        private String status; // "approved", "denied", "pending"
+        private String status; // "approved", "denied", "pending", "scanning", "not_found"
 
         public boolean isApproved() {
             return approved;

@@ -12,6 +12,8 @@ public class DependencyInfo {
         PENDING,
         APPROVED,
         DENIED,
+        SCANNING,
+        NOT_FOUND,
         ERROR
     }
 
