@@ -1,6 +1,7 @@
 package io.repogate.plugin.service;
 
 import com.intellij.openapi.application.ApplicationManager;
+import com.intellij.openapi.application.ReadAction;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.psi.search.FilenameIndex;
@@ -40,13 +41,16 @@ public class InventoryReporter {
 
         ApplicationManager.getApplication().executeOnPooledThread(() -> {
             try {
-                List<DependencyInfo> allDependencies = collectAllDependencies();
+                // Collect dependencies in read action
+                List<DependencyInfo> allDependencies = ReadAction.compute(() -> collectAllDependencies());
+                
                 if (!allDependencies.isEmpty()) {
                     reportInventory(allDependencies);
                     inventoryReported = true;
                 }
             } catch (Exception e) {
                 System.err.println("RepoGate: Error collecting inventory: " + e.getMessage());
+                e.printStackTrace();
             }
         });
     }
@@ -60,6 +64,10 @@ public class InventoryReporter {
                 GlobalSearchScope.projectScope(project)
         );
         for (VirtualFile file : packageJsonFiles) {
+            // Skip node_modules
+            if (file.getPath().contains("node_modules")) {
+                continue;
+            }
             allDeps.addAll(parseDependencies(file, new NpmDependencyParser()));
         }
 
@@ -126,6 +134,7 @@ public class InventoryReporter {
             System.out.println("RepoGate: Reported inventory of " + dependencies.size() + " dependencies");
         } catch (Exception e) {
             System.err.println("RepoGate: Failed to report inventory: " + e.getMessage());
+            e.printStackTrace();
         }
     }
 }

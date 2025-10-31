@@ -15,6 +15,14 @@
     ]]></description>
 
     <change-notes><![CDATA[
+    <h3>1.2.1</h3>
+    <ul>
+      <li>Fixed threading issue in InitialPackageScanner causing IDE errors</li>
+      <li>Fixed threading issue in InventoryReporter</li>
+      <li>Wrapped file index access in ReadAction for proper thread safety</li>
+      <li>Added node_modules filtering to prevent scanning dependencies</li>
+      <li>Improved error logging and debugging output</li>
+    </ul>
     <h3>1.2.0</h3>
     <ul>
       <li>Added initial package scan on first install/enable</li>

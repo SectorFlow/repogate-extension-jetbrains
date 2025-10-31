@@ -6,6 +6,7 @@ import com.intellij.notification.NotificationGroupManager;
 import com.intellij.notification.NotificationType;
 import com.intellij.notification.Notifications;
 import com.intellij.openapi.application.ApplicationManager;
+import com.intellij.openapi.application.ReadAction;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.psi.search.FilenameIndex;
@@ -53,7 +54,8 @@ public class InitialPackageScanner {
             try {
                 showNotification("RepoGate: Scanning existing packages...", NotificationType.INFORMATION);
                 
-                List<RepoGateApiClient.PackageInfo> allPackages = collectAllPackages();
+                // Collect packages in read action
+                List<RepoGateApiClient.PackageInfo> allPackages = ReadAction.compute(() -> collectAllPackages());
                 
                 if (!allPackages.isEmpty()) {
                     queuePackages(allPackages);
@@ -61,6 +63,8 @@ public class InitialPackageScanner {
                             String.format("RepoGate: Queued %d existing packages for review", allPackages.size()),
                             NotificationType.INFORMATION
                     );
+                } else {
+                    System.out.println("RepoGate: No packages found during initial scan");
                 }
                 
                 // Mark scan as completed
@@ -68,6 +72,7 @@ public class InitialPackageScanner {
                 
             } catch (Exception e) {
                 System.err.println("RepoGate: Error during initial scan: " + e.getMessage());
+                e.printStackTrace();
             }
         });
     }
@@ -82,6 +87,10 @@ public class InitialPackageScanner {
                 GlobalSearchScope.projectScope(project)
         );
         for (VirtualFile file : packageJsonFiles) {
+            // Skip node_modules
+            if (file.getPath().contains("node_modules")) {
+                continue;
+            }
             allPackages.addAll(parsePackages(file, new NpmDependencyParser(), projectName));
         }
 
@@ -130,6 +139,8 @@ public class InitialPackageScanner {
                         projectName
                 ));
             }
+            
+            System.out.println("RepoGate: Found " + deps.size() + " packages in " + file.getName());
         } catch (IOException e) {
             System.err.println("RepoGate: Error reading file " + file.getPath() + ": " + e.getMessage());
         }
@@ -152,6 +163,7 @@ public class InitialPackageScanner {
             System.out.println("RepoGate: Successfully queued " + packages.size() + " packages");
         } catch (Exception e) {
             System.err.println("RepoGate: Failed to queue packages: " + e.getMessage());
+            e.printStackTrace();
         }
     }
 
