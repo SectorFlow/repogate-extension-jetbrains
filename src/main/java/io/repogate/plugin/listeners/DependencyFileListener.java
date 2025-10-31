@@ -13,6 +13,7 @@ import io.repogate.plugin.parser.MavenDependencyParser;
 import io.repogate.plugin.parser.NpmDependencyParser;
 import io.repogate.plugin.service.DependencyValidator;
 import io.repogate.plugin.service.InventoryReporter;
+import io.repogate.plugin.service.InitialPackageScanner;
 import org.jetbrains.annotations.NotNull;
 
 import java.io.IOException;
@@ -31,6 +32,7 @@ public class DependencyFileListener implements BulkFileListener {
     private final Map<Project, DependencyValidator> validators = new ConcurrentHashMap<>();
     private final Map<Project, InventoryReporter> inventoryReporters = new ConcurrentHashMap<>();
     private final Set<Project> inventoryReported = ConcurrentHashMap.newKeySet();
+    private final Set<Project> initialScanTriggered = ConcurrentHashMap.newKeySet();
 
     @Override
     public void after(@NotNull List<? extends VFileEvent> events) {
@@ -72,6 +74,13 @@ public class DependencyFileListener implements BulkFileListener {
                 // Find the project for this file
                 Project project = findProjectForFile(file);
                 if (project != null) {
+                    // Trigger initial scan on first file change
+                    if (!initialScanTriggered.contains(project)) {
+                        InitialPackageScanner scanner = new InitialPackageScanner(project);
+                        scanner.performInitialScanIfNeeded();
+                        initialScanTriggered.add(project);
+                    }
+                    
                     // Report inventory on first file change
                     if (!inventoryReported.contains(project)) {
                         InventoryReporter reporter = inventoryReporters.computeIfAbsent(

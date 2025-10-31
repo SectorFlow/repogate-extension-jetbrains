@@ -15,6 +15,15 @@
     ]]></description>
 
     <change-notes><![CDATA[
+    <h3>1.2.0</h3>
+    <ul>
+      <li>Added initial package scan on first install/enable</li>
+      <li>New /queue endpoint integration for existing packages</li>
+      <li>Added packageVersion field to dependency requests</li>
+      <li>Added projectName field to dependency requests</li>
+      <li>Improved version extraction from all package managers</li>
+      <li>Scan runs only once per project installation</li>
+    </ul>
     <h3>1.1.1</h3>
     <ul>
       <li>Improved connection error handling with graceful retry logic</li>

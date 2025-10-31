@@ -55,9 +55,12 @@ public class DependencyValidator {
         ApplicationManager.getApplication().executeOnPooledThread(() -> {
             try {
                 RepoGateApiClient client = new RepoGateApiClient(settings.getApiUrl(), apiToken);
+                String projectName = project.getName();
                 RepoGateApiClient.DependencyResponse response = client.requestDependency(
                         dependency.getPackageName(),
-                        dependency.getPackageManager()
+                        dependency.getPackageManager(),
+                        dependency.getVersion(),
+                        projectName
                 );
 
                 // Connection successful!
@@ -144,10 +147,13 @@ public class DependencyValidator {
             try {
                 RepoGateSettings settings = RepoGateSettings.getInstance();
                 RepoGateApiClient client = new RepoGateApiClient(settings.getApiUrl(), settings.getApiToken());
+                String projectName = project.getName();
                 
                 RepoGateApiClient.DependencyResponse response = client.requestDependency(
                         dependency.getPackageName(),
-                        dependency.getPackageManager()
+                        dependency.getPackageManager(),
+                        dependency.getVersion(),
+                        projectName
                 );
 
                 // Connection successful!

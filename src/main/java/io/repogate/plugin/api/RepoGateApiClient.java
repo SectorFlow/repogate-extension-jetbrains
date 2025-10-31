@@ -29,10 +29,16 @@ public class RepoGateApiClient {
     /**
      * Request validation for a new dependency
      */
-    public DependencyResponse requestDependency(String packageName, String packageManager) throws IOException {
+    public DependencyResponse requestDependency(String packageName, String packageManager, String packageVersion, String projectName) throws IOException {
         JsonObject requestBody = new JsonObject();
         requestBody.addProperty("packageName", packageName);
         requestBody.addProperty("packageManager", packageManager);
+        if (packageVersion != null && !packageVersion.isEmpty()) {
+            requestBody.addProperty("packageVersion", packageVersion);
+        }
+        if (projectName != null && !projectName.isEmpty()) {
+            requestBody.addProperty("projectName", projectName);
+        }
 
         RequestBody body = RequestBody.create(gson.toJson(requestBody), JSON);
         Request request = new Request.Builder()
@@ -118,6 +124,61 @@ public class RepoGateApiClient {
             }
         } catch (Exception e) {
             System.err.println("RepoGate: Error reporting inventory: " + e.getMessage());
+        }
+    }
+
+    /**
+     * Queue packages for initial scan
+     */
+    public void queuePackages(java.util.List<PackageInfo> packages) {
+        try {
+            JsonObject payload = new JsonObject();
+            com.google.gson.JsonArray packagesArray = new com.google.gson.JsonArray();
+            
+            for (PackageInfo pkg : packages) {
+                JsonObject pkgObj = new JsonObject();
+                pkgObj.addProperty("packageName", pkg.packageName);
+                if (pkg.packageVersion != null && !pkg.packageVersion.isEmpty()) {
+                    pkgObj.addProperty("packageVersion", pkg.packageVersion);
+                }
+                pkgObj.addProperty("packageManager", pkg.packageManager);
+                if (pkg.projectName != null && !pkg.projectName.isEmpty()) {
+                    pkgObj.addProperty("projectName", pkg.projectName);
+                }
+                packagesArray.add(pkgObj);
+            }
+            
+            payload.add("packages", packagesArray);
+            
+            RequestBody body = RequestBody.create(gson.toJson(payload), JSON);
+            Request request = new Request.Builder()
+                    .url(baseUrl + "/queue")
+                    .post(body)
+                    .addHeader("Authorization", "Bearer " + apiToken)
+                    .addHeader("Content-Type", "application/json")
+                    .build();
+
+            try (Response response = client.newCall(request).execute()) {
+                if (!response.isSuccessful()) {
+                    System.err.println("RepoGate: Failed to queue packages: " + response.code());
+                }
+            }
+        } catch (Exception e) {
+            System.err.println("RepoGate: Error queuing packages: " + e.getMessage());
+        }
+    }
+
+    public static class PackageInfo {
+        public String packageName;
+        public String packageVersion;
+        public String packageManager;
+        public String projectName;
+        
+        public PackageInfo(String packageName, String packageVersion, String packageManager, String projectName) {
+            this.packageName = packageName;
+            this.packageVersion = packageVersion;
+            this.packageManager = packageManager;
+            this.projectName = projectName;
         }
     }
 
