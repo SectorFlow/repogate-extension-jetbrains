@@ -12,7 +12,6 @@ import io.repogate.plugin.parser.GradleDependencyParser;
 import io.repogate.plugin.parser.MavenDependencyParser;
 import io.repogate.plugin.parser.NpmDependencyParser;
 import io.repogate.plugin.service.DependencyValidator;
-import io.repogate.plugin.service.InventoryReporter;
 import io.repogate.plugin.service.InitialPackageScanner;
 import org.jetbrains.annotations.NotNull;
 
@@ -30,8 +29,6 @@ public class DependencyFileListener implements BulkFileListener {
     
     private final Map<String, String> fileContentsCache = new ConcurrentHashMap<>();
     private final Map<Project, DependencyValidator> validators = new ConcurrentHashMap<>();
-    private final Map<Project, InventoryReporter> inventoryReporters = new ConcurrentHashMap<>();
-    private final Set<Project> inventoryReported = ConcurrentHashMap.newKeySet();
     private final Set<Project> initialScanTriggered = ConcurrentHashMap.newKeySet();
 
     @Override
@@ -75,20 +72,11 @@ public class DependencyFileListener implements BulkFileListener {
                 Project project = findProjectForFile(file);
                 if (project != null) {
                     // Trigger initial scan on first file change
+                    // This will only run once per project and sends to /queue endpoint
                     if (!initialScanTriggered.contains(project)) {
                         InitialPackageScanner scanner = new InitialPackageScanner(project);
                         scanner.performInitialScanIfNeeded();
                         initialScanTriggered.add(project);
-                    }
-                    
-                    // Report inventory on first file change
-                    if (!inventoryReported.contains(project)) {
-                        InventoryReporter reporter = inventoryReporters.computeIfAbsent(
-                                project,
-                                InventoryReporter::new
-                        );
-                        reporter.reportInventoryIfNeeded();
-                        inventoryReported.add(project);
                     }
                     
                     DependencyValidator validator = validators.computeIfAbsent(
@@ -96,7 +84,7 @@ public class DependencyFileListener implements BulkFileListener {
                             DependencyValidator::new
                     );
                     
-                    // Validate each new dependency
+                    // Validate each new dependency (sends to /request endpoint)
                     for (DependencyInfo dependency : newDependencies) {
                         validator.validateDependency(dependency);
                     }

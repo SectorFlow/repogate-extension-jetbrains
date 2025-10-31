@@ -15,6 +15,13 @@
     ]]></description>
 
     <change-notes><![CDATA[
+    <h3>1.2.2</h3>
+    <ul>
+      <li>CRITICAL: Removed InventoryReporter that was triggering /request for all packages</li>
+      <li>Initial scan now ONLY sends to /queue endpoint (no /request calls)</li>
+      <li>Fixed duplicate package submission on startup</li>
+      <li>Cleaned up unnecessary inventory reporting logic</li>
+    </ul>
     <h3>1.2.1</h3>
     <ul>
       <li>Fixed threading issue in InitialPackageScanner causing IDE errors</li>
