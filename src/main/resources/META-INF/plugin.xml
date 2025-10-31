@@ -15,6 +15,14 @@
     ]]></description>
 
     <change-notes><![CDATA[
+    <h3>1.1.0</h3>
+    <ul>
+      <li>Added visual indicators for dependency approval status</li>
+      <li>Implemented initial inventory reporting to RepoGate</li>
+      <li>Added developer identification in API calls</li>
+      <li>Improved notification messages with status icons</li>
+      <li>Enhanced company visibility into developer dependency usage</li>
+    </ul>
     <h3>1.0.1</h3>
     <ul>
       <li>Updated compatibility for IntelliJ IDEA 2024.3</li>

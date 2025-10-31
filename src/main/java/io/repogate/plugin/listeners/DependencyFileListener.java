@@ -12,6 +12,7 @@ import io.repogate.plugin.parser.GradleDependencyParser;
 import io.repogate.plugin.parser.MavenDependencyParser;
 import io.repogate.plugin.parser.NpmDependencyParser;
 import io.repogate.plugin.service.DependencyValidator;
+import io.repogate.plugin.service.InventoryReporter;
 import org.jetbrains.annotations.NotNull;
 
 import java.io.IOException;
@@ -28,6 +29,8 @@ public class DependencyFileListener implements BulkFileListener {
     
     private final Map<String, String> fileContentsCache = new ConcurrentHashMap<>();
     private final Map<Project, DependencyValidator> validators = new ConcurrentHashMap<>();
+    private final Map<Project, InventoryReporter> inventoryReporters = new ConcurrentHashMap<>();
+    private final Set<Project> inventoryReported = ConcurrentHashMap.newKeySet();
 
     @Override
     public void after(@NotNull List<? extends VFileEvent> events) {
@@ -69,6 +72,16 @@ public class DependencyFileListener implements BulkFileListener {
                 // Find the project for this file
                 Project project = findProjectForFile(file);
                 if (project != null) {
+                    // Report inventory on first file change
+                    if (!inventoryReported.contains(project)) {
+                        InventoryReporter reporter = inventoryReporters.computeIfAbsent(
+                                project,
+                                InventoryReporter::new
+                        );
+                        reporter.reportInventoryIfNeeded();
+                        inventoryReported.add(project);
+                    }
+                    
                     DependencyValidator validator = validators.computeIfAbsent(
                             project,
                             DependencyValidator::new

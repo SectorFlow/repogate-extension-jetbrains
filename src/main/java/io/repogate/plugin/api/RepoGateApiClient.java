@@ -78,6 +78,49 @@ public class RepoGateApiClient {
         }
     }
 
+    /**
+     * Report inventory of all dependencies to RepoGate
+     */
+    public void reportInventory(java.util.List<io.repogate.plugin.model.DependencyInfo> dependencies, java.util.Map<String, String> developerInfo) {
+        try {
+            JsonObject payload = new JsonObject();
+            com.google.gson.JsonArray depsArray = new com.google.gson.JsonArray();
+            
+            for (io.repogate.plugin.model.DependencyInfo dep : dependencies) {
+                JsonObject depObj = new JsonObject();
+                depObj.addProperty("packageName", dep.getPackageName());
+                depObj.addProperty("packageManager", dep.getPackageManager());
+                depObj.addProperty("status", dep.getStatus().toString());
+                depsArray.add(depObj);
+            }
+            
+            JsonObject devInfo = new JsonObject();
+            for (java.util.Map.Entry<String, String> entry : developerInfo.entrySet()) {
+                devInfo.addProperty(entry.getKey(), entry.getValue());
+            }
+            
+            payload.add("dependencies", depsArray);
+            payload.add("developer", devInfo);
+            payload.addProperty("timestamp", java.time.Instant.now().toString());
+            
+            RequestBody body = RequestBody.create(gson.toJson(payload), JSON);
+            Request request = new Request.Builder()
+                    .url(baseUrl + "/dependencies/inventory")
+                    .post(body)
+                    .addHeader("Authorization", "Bearer " + apiToken)
+                    .addHeader("Content-Type", "application/json")
+                    .build();
+
+            try (Response response = client.newCall(request).execute()) {
+                if (!response.isSuccessful()) {
+                    System.err.println("RepoGate: Failed to report inventory: " + response.code());
+                }
+            }
+        } catch (Exception e) {
+            System.err.println("RepoGate: Error reporting inventory: " + e.getMessage());
+        }
+    }
+
     public static class DependencyResponse {
         private boolean approved;
         private String message;
