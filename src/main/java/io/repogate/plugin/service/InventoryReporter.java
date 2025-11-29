@@ -35,7 +35,14 @@ public class InventoryReporter {
         }
 
         RepoGateSettings settings = RepoGateSettings.getInstance();
-        if (!settings.isEnabled() || settings.getApiToken() == null || settings.getApiToken().isEmpty()) {
+        io.repogate.plugin.auth.AuthManager authManager = io.repogate.plugin.auth.AuthManager.getInstance();
+        
+        if (!settings.isEnabled() || !authManager.isAuthenticated()) {
+            return;
+        }
+        
+        String apiToken = authManager.getToken();
+        if (apiToken == null || apiToken.isEmpty()) {
             return;
         }
 
@@ -113,8 +120,10 @@ public class InventoryReporter {
 
     private void reportInventory(List<DependencyInfo> dependencies) {
         RepoGateSettings settings = RepoGateSettings.getInstance();
+        io.repogate.plugin.auth.AuthManager authManager = io.repogate.plugin.auth.AuthManager.getInstance();
+        
         String apiUrl = settings.getApiUrl();
-        String apiToken = settings.getApiToken();
+        String apiToken = authManager.getToken();
 
         if (apiUrl == null || apiUrl.isEmpty() || apiToken == null || apiToken.isEmpty()) {
             return;

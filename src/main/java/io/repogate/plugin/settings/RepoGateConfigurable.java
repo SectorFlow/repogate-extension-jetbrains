@@ -28,15 +28,13 @@ public class RepoGateConfigurable implements Configurable {
     @Override
     public boolean isModified() {
         RepoGateSettings settings = RepoGateSettings.getInstance();
-        return !settingsComponent.getApiToken().equals(settings.getApiToken()) ||
-                !settingsComponent.getApiUrl().equals(settings.getApiUrl()) ||
+        return !settingsComponent.getApiUrl().equals(settings.getApiUrl()) ||
                 settingsComponent.isEnabled() != settings.isEnabled();
     }
 
     @Override
     public void apply() {
         RepoGateSettings settings = RepoGateSettings.getInstance();
-        settings.setApiToken(settingsComponent.getApiToken());
         settings.setApiUrl(settingsComponent.getApiUrl());
         settings.setEnabled(settingsComponent.isEnabled());
     }
@@ -44,7 +42,6 @@ public class RepoGateConfigurable implements Configurable {
     @Override
     public void reset() {
         RepoGateSettings settings = RepoGateSettings.getInstance();
-        settingsComponent.setApiToken(settings.getApiToken());
         settingsComponent.setApiUrl(settings.getApiUrl());
         settingsComponent.setEnabled(settings.isEnabled());
     }

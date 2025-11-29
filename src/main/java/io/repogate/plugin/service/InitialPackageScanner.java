@@ -45,8 +45,16 @@ public class InitialPackageScanner {
         }
 
         RepoGateSettings settings = RepoGateSettings.getInstance();
-        if (!settings.isEnabled() || settings.getApiToken() == null || settings.getApiToken().isEmpty()) {
-            System.out.println("RepoGate: Skipping initial scan - extension not configured");
+        io.repogate.plugin.auth.AuthManager authManager = io.repogate.plugin.auth.AuthManager.getInstance();
+        
+        if (!settings.isEnabled() || !authManager.isAuthenticated()) {
+            System.out.println("RepoGate: Skipping initial scan - not authenticated");
+            return;
+        }
+        
+        String apiToken = authManager.getToken();
+        if (apiToken == null || apiToken.isEmpty()) {
+            System.out.println("RepoGate: Skipping initial scan - no valid token");
             return;
         }
 
@@ -150,8 +158,10 @@ public class InitialPackageScanner {
 
     private void queuePackages(List<RepoGateApiClient.PackageInfo> packages) {
         RepoGateSettings settings = RepoGateSettings.getInstance();
+        io.repogate.plugin.auth.AuthManager authManager = io.repogate.plugin.auth.AuthManager.getInstance();
+        
         String apiUrl = settings.getApiUrl();
-        String apiToken = settings.getApiToken();
+        String apiToken = authManager.getToken();
 
         if (apiUrl == null || apiUrl.isEmpty() || apiToken == null || apiToken.isEmpty()) {
             return;

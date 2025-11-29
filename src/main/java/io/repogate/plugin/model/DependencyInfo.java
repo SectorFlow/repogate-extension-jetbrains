@@ -6,6 +6,7 @@ public class DependencyInfo {
     private final String packageName;
     private final String packageManager;
     private final String version;
+    private final String filePath;
     private ApprovalStatus status;
 
     public enum ApprovalStatus {
@@ -18,9 +19,14 @@ public class DependencyInfo {
     }
 
     public DependencyInfo(String packageName, String packageManager, String version) {
+        this(packageName, packageManager, version, "");
+    }
+    
+    public DependencyInfo(String packageName, String packageManager, String version, String filePath) {
         this.packageName = packageName;
         this.packageManager = packageManager;
         this.version = version;
+        this.filePath = filePath != null ? filePath : "";
         this.status = ApprovalStatus.PENDING;
     }
 
@@ -34,6 +40,10 @@ public class DependencyInfo {
 
     public String getVersion() {
         return version;
+    }
+    
+    public String getFilePath() {
+        return filePath;
     }
 
     public ApprovalStatus getStatus() {

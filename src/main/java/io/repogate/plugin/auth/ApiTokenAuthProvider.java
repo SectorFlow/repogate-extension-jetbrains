@@ -1,5 +1,6 @@
 package io.repogate.plugin.auth;
 
+import com.intellij.openapi.project.Project;
 import com.intellij.openapi.ui.Messages;
 import org.jetbrains.annotations.Nullable;
 
@@ -28,6 +29,7 @@ public class ApiTokenAuthProvider implements AuthProvider {
     @Override
     public boolean authenticate() {
         String token = Messages.showPasswordDialog(
+                (Project) null,
                 "Enter your RepoGate API token:",
                 "RepoGate API Token",
                 null,
