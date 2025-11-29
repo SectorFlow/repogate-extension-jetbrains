@@ -6,15 +6,50 @@
     <description><![CDATA[
     RepoGate is a security plugin that monitors and validates dependencies before they are added to your project.
     
-    Features:
-    - Monitors package.json (npm), pom.xml (Maven), and build.gradle (Gradle) for dependency changes
-    - Validates dependencies against security vulnerabilities via RepoGate API
-    - Blocks installation of unapproved dependencies
-    - Provides quick removal of denied dependencies
-    - Configurable API token authentication
+    <h3>Supported IDEs</h3>
+    <ul>
+      <li>IntelliJ IDEA (Ultimate & Community)</li>
+      <li>PyCharm (Professional & Community)</li>
+      <li>WebStorm</li>
+      <li>PhpStorm</li>
+      <li>RubyMine</li>
+      <li>GoLand</li>
+      <li>CLion</li>
+      <li>Rider</li>
+      <li>Android Studio</li>
+    </ul>
+    
+    <h3>Features</h3>
+    <ul>
+      <li>Monitors package.json (npm), pom.xml (Maven), and build.gradle (Gradle) for dependency changes</li>
+      <li>Validates dependencies against security vulnerabilities via RepoGate API</li>
+      <li>EntraID SSO authentication with OAuth2 PKCE flow</li>
+      <li>API Token authentication (legacy)</li>
+      <li>Secure credential storage using IntelliJ PasswordSafe</li>
+      <li>Automatic token refresh for EntraID sessions</li>
+      <li>Git repository detection for enhanced security context</li>
+      <li>Real-time dependency status monitoring</li>
+      <li>In-IDE notifications for approval status</li>
+    </ul>
+    
+    <h3>Authentication</h3>
+    <p>Sign in using <strong>Tools > RepoGate > Sign In with EntraID</strong> (recommended) or API Token (legacy).</p>
     ]]></description>
 
     <change-notes><![CDATA[
+    <h3>2.0.0</h3>
+    <ul>
+      <li><strong>EntraID OAuth2 Authentication</strong> - Full SSO support with PKCE security</li>
+      <li><strong>Dual Authentication Modes</strong> - EntraID SSO or API Token (legacy)</li>
+      <li><strong>Secure Credential Storage</strong> - Uses IntelliJ PasswordSafe (encrypted)</li>
+      <li><strong>Automatic Token Refresh</strong> - Background refresh for EntraID sessions</li>
+      <li><strong>Multi-IDE Support</strong> - Compatible with all JetBrains IDEs</li>
+      <li><strong>Enhanced API Integration</strong> - Aligned with VS Code extension</li>
+      <li><strong>Git Repository Detection</strong> - Includes repository context in API calls</li>
+      <li><strong>New User Actions</strong> - Sign In (EntraID/API Token), Sign Out, Account Info, Test Connection, Scan Now</li>
+      <li><strong>Improved Security</strong> - No plain text token storage, PKCE flow, token rotation</li>
+      <li><strong>Better Error Messages</strong> - Clear authentication and connection feedback</li>
+    </ul>
     <h3>1.3.0</h3>
     <ul>
       <li>Added support for new /check endpoint status values</li>
@@ -80,10 +115,29 @@
     ]]></change-notes>
 
     <!-- Product and plugin compatibility requirements -->
+    <!-- Base platform module - required for all JetBrains IDEs -->
     <depends>com.intellij.modules.platform</depends>
-    <depends>com.intellij.java</depends>
+    
+    <!-- Optional dependencies for specific features -->
+    <!-- Java support (IntelliJ IDEA, Android Studio) -->
     <depends optional="true" config-file="repogate-gradle.xml">org.jetbrains.plugins.gradle</depends>
     <depends optional="true" config-file="repogate-maven.xml">org.jetbrains.idea.maven</depends>
+    
+    <!-- Language-specific modules (all optional for broader IDE support) -->
+    <!-- Python (PyCharm) -->
+    <depends optional="true">com.intellij.modules.python</depends>
+    <!-- JavaScript/TypeScript (WebStorm) -->
+    <depends optional="true">JavaScript</depends>
+    <!-- PHP (PhpStorm) -->
+    <depends optional="true">com.jetbrains.php</depends>
+    <!-- Ruby (RubyMine) -->
+    <depends optional="true">org.jetbrains.plugins.ruby</depends>
+    <!-- Go (GoLand) -->
+    <depends optional="true">org.jetbrains.plugins.go</depends>
+    <!-- C/C++ (CLion) -->
+    <depends optional="true">com.intellij.modules.cidr.lang</depends>
+    <!-- .NET (Rider) -->
+    <depends optional="true">com.intellij.modules.rider</depends>
 
     <extensions defaultExtensionNs="com.intellij">
         <!-- Application-level settings -->
