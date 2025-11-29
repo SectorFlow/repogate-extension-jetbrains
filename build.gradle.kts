@@ -5,7 +5,7 @@ plugins {
 }
 
 group = "io.repogate"
-version = "2.0.2"
+version = "2.0.3"
 
 repositories {
     mavenCentral()
@@ -36,7 +36,7 @@ tasks {
     patchPluginXml {
         sinceBuild.set("241")
         untilBuild.set("253.*")
-        version.set("2.0.2")
+        version.set("2.0.3")
     }
 
     buildSearchableOptions {

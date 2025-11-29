@@ -109,7 +109,7 @@ public class OAuthService {
      */
     private String buildState(String clientId, String codeVerifier, String tenantId) {
         JsonObject stateObj = new JsonObject();
-        stateObj.addProperty("clientType", "intellij");
+        stateObj.addProperty("clientType", "jetbrains");
         stateObj.addProperty("codeVerifier", codeVerifier);
         stateObj.addProperty("tenantId", tenantId);
         

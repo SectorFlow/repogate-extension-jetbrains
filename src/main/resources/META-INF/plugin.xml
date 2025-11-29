@@ -36,7 +36,12 @@
     <p>Sign in using <strong>Tools > RepoGate > Sign In with EntraID</strong> (recommended) or API Token (legacy).</p>
     ]]></description>
 
-       <change-notes><![CDATA[<h3>2.0.2</h3>
+       <change-notes><![CDATA[<h3>2.0.3</h3>
+    <ul>
+      <li><strong>EntraID Authentication Fix</strong> - Changed clientType from 'intellij' to 'jetbrains' to match backend expectations</li>
+      <li><strong>Resolved "Invalid client type" Error</strong> - EntraID OAuth now works correctly</li>
+    </ul>
+    <h3>2.0.2</h3>
     <ul>
       <li><strong>Enhanced Settings UI</strong> - Authentication now integrated into Settings page</li>
       <li><strong>Sign In Buttons</strong> - Direct EntraID and API Token sign-in from Settings</li>
