@@ -231,6 +231,13 @@ public class EntraIdAuthProvider implements AuthProvider {
             System.out.println("RepoGate: Refresh token stored successfully");
         }
         
+        // Store user info if available
+        if (authResponse.getUser() != null) {
+            String userInfoJson = gson.toJson(authResponse.getUser());
+            SecureStorage.store("repogate.userInfo", userInfoJson);
+            System.out.println("RepoGate: User info stored successfully");
+        }
+        
         // Calculate and store expiration timestamp
         long expirationTime = System.currentTimeMillis() + (authResponse.getExpiresIn() * 1000L);
         tokenExpiration = expirationTime;
@@ -308,5 +315,21 @@ public class EntraIdAuthProvider implements AuthProvider {
      */
     private String urlEncode(String value) {
         return java.net.URLEncoder.encode(value, java.nio.charset.StandardCharsets.UTF_8);
+    }
+    
+    /**
+     * Get user information from stored auth data
+     */
+    @Nullable
+    public io.repogate.plugin.model.UserInfo getUserInfo() {
+        String userInfoJson = SecureStorage.get("repogate.userInfo");
+        if (userInfoJson != null) {
+            try {
+                return gson.fromJson(userInfoJson, io.repogate.plugin.model.UserInfo.class);
+            } catch (Exception e) {
+                System.err.println("RepoGate: Failed to parse user info: " + e.getMessage());
+            }
+        }
+        return null;
     }
 }

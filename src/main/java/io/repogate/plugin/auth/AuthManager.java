@@ -133,4 +133,28 @@ public final class AuthManager {
         
         return "Unknown";
     }
+    
+    /**
+     * Get user information
+     */
+    @Nullable
+    public io.repogate.plugin.model.UserInfo getUserInfo() {
+        AuthProvider provider = getCurrentProvider();
+        if (provider instanceof EntraIdAuthProvider) {
+            return ((EntraIdAuthProvider) provider).getUserInfo();
+        }
+        return null;
+    }
+    
+    /**
+     * Get authentication type
+     */
+    @Nullable
+    public String getAuthType() {
+        AuthProvider provider = getCurrentProvider();
+        if (provider != null) {
+            return provider.getAuthType();
+        }
+        return null;
+    }
 }

@@ -44,6 +44,7 @@ public class RepoGateConfigurable implements Configurable {
         RepoGateSettings settings = RepoGateSettings.getInstance();
         settingsComponent.setApiUrl(settings.getApiUrl());
         settingsComponent.setEnabled(settings.isEnabled());
+        settingsComponent.reset(); // Update auth status
     }
 
     @Override
