@@ -94,6 +94,8 @@
             displayName="RepoGate"/>
         <applicationService 
             serviceImplementation="io.repogate.plugin.settings.RepoGateSettings"/>
+        <applicationService 
+            serviceImplementation="io.repogate.plugin.auth.AuthManager"/>
         
         <!-- Notification group -->
         <notificationGroup id="RepoGate Notifications" displayType="BALLOON" isLogByDefault="true"/>
@@ -105,6 +107,43 @@
     </projectListeners>
 
     <actions>
-        <!-- Add your actions here -->
+        <!-- RepoGate Actions -->
+        <group id="RepoGate.Menu" text="RepoGate" description="RepoGate Actions" popup="true">
+            <add-to-group group-id="ToolsMenu" anchor="last"/>
+            
+            <!-- Authentication Actions -->
+            <action id="RepoGate.SignInEntraID" 
+                    class="io.repogate.plugin.actions.SignInEntraIDAction" 
+                    text="Sign In with EntraID" 
+                    description="Sign in to RepoGate using EntraID SSO"/>
+            
+            <action id="RepoGate.SignInAPIToken" 
+                    class="io.repogate.plugin.actions.SignInAPITokenAction" 
+                    text="Sign In with API Token (Legacy)" 
+                    description="Sign in to RepoGate using API token"/>
+            
+            <action id="RepoGate.SignOut" 
+                    class="io.repogate.plugin.actions.SignOutAction" 
+                    text="Sign Out" 
+                    description="Sign out from RepoGate"/>
+            
+            <action id="RepoGate.ShowAccountInfo" 
+                    class="io.repogate.plugin.actions.ShowAccountInfoAction" 
+                    text="Show Account Info" 
+                    description="Show current account information"/>
+            
+            <separator/>
+            
+            <!-- Utility Actions -->
+            <action id="RepoGate.TestConnection" 
+                    class="io.repogate.plugin.actions.TestConnectionAction" 
+                    text="Test Connection" 
+                    description="Test connection to RepoGate API"/>
+            
+            <action id="RepoGate.ScanNow" 
+                    class="io.repogate.plugin.actions.ScanNowAction" 
+                    text="Scan Now" 
+                    description="Manually scan all packages"/>
+        </group>
     </actions>
 </idea-plugin>

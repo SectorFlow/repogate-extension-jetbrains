@@ -8,7 +8,7 @@ import java.io.IOException;
 import java.util.concurrent.TimeUnit;
 
 public class RepoGateApiClient {
-    private static final String DEFAULT_BASE_URL = "http://localhost:3000/api/v1";
+    private static final String DEFAULT_BASE_URL = "https://app.repogate.io/api/v1";
     private static final MediaType JSON = MediaType.get("application/json; charset=utf-8");
     
     private final OkHttpClient client;
@@ -28,21 +28,20 @@ public class RepoGateApiClient {
 
     /**
      * Request validation for a new dependency
+     * Aligned with VS Code: /request endpoint
      */
-    public DependencyResponse requestDependency(String packageName, String packageManager, String packageVersion, String projectName) throws IOException {
+    public DependencyResponse requestDependency(String name, String ecosystem, String version, String projectName, String path, boolean repository) throws IOException {
         JsonObject requestBody = new JsonObject();
-        requestBody.addProperty("packageName", packageName);
-        requestBody.addProperty("packageManager", packageManager);
-        if (packageVersion != null && !packageVersion.isEmpty()) {
-            requestBody.addProperty("packageVersion", packageVersion);
-        }
-        if (projectName != null && !projectName.isEmpty()) {
-            requestBody.addProperty("projectName", projectName);
-        }
+        requestBody.addProperty("name", name);
+        requestBody.addProperty("ecosystem", ecosystem); // npm, maven, gradle
+        requestBody.addProperty("version", version);
+        requestBody.addProperty("projectName", projectName);
+        requestBody.addProperty("path", path);
+        requestBody.addProperty("repository", repository);
 
         RequestBody body = RequestBody.create(gson.toJson(requestBody), JSON);
         Request request = new Request.Builder()
-                .url(baseUrl + "/dependencies/request")
+                .url(baseUrl + "/request") // Changed from /dependencies/request
                 .post(body)
                 .addHeader("Authorization", "Bearer " + apiToken)
                 .addHeader("Content-Type", "application/json")
@@ -60,15 +59,19 @@ public class RepoGateApiClient {
 
     /**
      * Check the approval status of a dependency
+     * Aligned with VS Code: /check endpoint
      */
-    public DependencyResponse checkDependency(String packageName, String packageManager) throws IOException {
+    public DependencyResponse checkDependency(String name, String ecosystem, String version, String projectName, boolean repository) throws IOException {
         JsonObject requestBody = new JsonObject();
-        requestBody.addProperty("packageName", packageName);
-        requestBody.addProperty("packageManager", packageManager);
+        requestBody.addProperty("name", name);
+        requestBody.addProperty("ecosystem", ecosystem);
+        requestBody.addProperty("version", version);
+        requestBody.addProperty("projectName", projectName);
+        requestBody.addProperty("repository", repository);
 
         RequestBody body = RequestBody.create(gson.toJson(requestBody), JSON);
         Request request = new Request.Builder()
-                .url(baseUrl + "/dependencies/check")
+                .url(baseUrl + "/check") // Changed from /dependencies/check
                 .post(body)
                 .addHeader("Authorization", "Bearer " + apiToken)
                 .addHeader("Content-Type", "application/json")
@@ -81,6 +84,38 @@ public class RepoGateApiClient {
             
             String responseBody = response.body() != null ? response.body().string() : "{}";
             return gson.fromJson(responseBody, DependencyResponse.class);
+        }
+    }
+    
+    /**
+     * Update dependency status (removal or version change)
+     * Aligned with VS Code: /update endpoint
+     */
+    public void updateDependency(String name, String ecosystem, String fromVersion, String toVersion, String action, String projectName, boolean repository) throws IOException {
+        JsonObject requestBody = new JsonObject();
+        requestBody.addProperty("name", name);
+        requestBody.addProperty("ecosystem", ecosystem);
+        requestBody.addProperty("fromVersion", fromVersion);
+        if (toVersion != null) {
+            requestBody.addProperty("toVersion", toVersion);
+        }
+        requestBody.addProperty("action", action); // "removed" or "updated"
+        requestBody.addProperty("projectName", projectName);
+        requestBody.addProperty("timestamp", java.time.Instant.now().toString());
+        requestBody.addProperty("repository", repository);
+
+        RequestBody body = RequestBody.create(gson.toJson(requestBody), JSON);
+        Request request = new Request.Builder()
+                .url(baseUrl + "/update")
+                .post(body)
+                .addHeader("Authorization", "Bearer " + apiToken)
+                .addHeader("Content-Type", "application/json")
+                .build();
+
+        try (Response response = client.newCall(request).execute()) {
+            if (!response.isSuccessful()) {
+                System.err.println("RepoGate: Failed to update dependency: " + response.code());
+            }
         }
     }
 
