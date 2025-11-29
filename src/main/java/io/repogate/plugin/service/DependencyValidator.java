@@ -5,8 +5,10 @@ import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.ui.Messages;
 import io.repogate.plugin.api.RepoGateApiClient;
+import io.repogate.plugin.auth.AuthManager;
 import io.repogate.plugin.model.DependencyInfo;
 import io.repogate.plugin.settings.RepoGateSettings;
+import io.repogate.plugin.utils.GitDetector;
 
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executors;
@@ -35,10 +37,18 @@ public class DependencyValidator {
             return;
         }
 
-        String apiToken = settings.getApiToken();
+        AuthManager authManager = AuthManager.getInstance();
+        if (!authManager.isAuthenticated()) {
+            showNotification("RepoGate: Authentication Required",
+                    "Please sign in using Tools > RepoGate > Sign In with EntraID (or API Token)",
+                    NotificationType.WARNING);
+            return;
+        }
+        
+        String apiToken = authManager.getToken();
         if (apiToken == null || apiToken.trim().isEmpty()) {
-            showNotification("RepoGate: API Token Required",
-                    "Please configure your RepoGate API token in Settings > Tools > RepoGate",
+            showNotification("RepoGate: Authentication Error",
+                    "No valid authentication token available. Please sign in again.",
                     NotificationType.WARNING);
             return;
         }
@@ -56,11 +66,16 @@ public class DependencyValidator {
             try {
                 RepoGateApiClient client = new RepoGateApiClient(settings.getApiUrl(), apiToken);
                 String projectName = project.getName();
+                String filePath = dependency.getFilePath() != null ? dependency.getFilePath() : "";
+                boolean isGitRepo = GitDetector.isGitRepository(project);
+                
                 RepoGateApiClient.DependencyResponse response = client.requestDependency(
                         dependency.getPackageName(),
                         dependency.getPackageManager(),
                         dependency.getVersion(),
-                        projectName
+                        projectName,
+                        filePath,
+                        isGitRepo
                 );
 
                 // Connection successful!
@@ -187,14 +202,22 @@ public class DependencyValidator {
 
             try {
                 RepoGateSettings settings = RepoGateSettings.getInstance();
-                RepoGateApiClient client = new RepoGateApiClient(settings.getApiUrl(), settings.getApiToken());
+                AuthManager authManager = AuthManager.getInstance();
+                String token = authManager.getToken();
+                if (token == null) return;
+                
+                RepoGateApiClient client = new RepoGateApiClient(settings.getApiUrl(), token);
                 String projectName = project.getName();
+                String filePath = dependency.getFilePath() != null ? dependency.getFilePath() : "";
+                boolean isGitRepo = GitDetector.isGitRepository(project);
                 
                 RepoGateApiClient.DependencyResponse response = client.requestDependency(
                         dependency.getPackageName(),
                         dependency.getPackageManager(),
                         dependency.getVersion(),
-                        projectName
+                        projectName,
+                        filePath,
+                        isGitRepo
                 );
 
                 // Connection successful!
@@ -235,11 +258,20 @@ public class DependencyValidator {
         ScheduledFuture<?> task = scheduler.scheduleAtFixedRate(() -> {
             try {
                 RepoGateSettings settings = RepoGateSettings.getInstance();
-                RepoGateApiClient client = new RepoGateApiClient(settings.getApiUrl(), settings.getApiToken());
+                AuthManager authManager = AuthManager.getInstance();
+                String token = authManager.getToken();
+                if (token == null) return;
+                
+                RepoGateApiClient client = new RepoGateApiClient(settings.getApiUrl(), token);
+                String projectName = project.getName();
+                boolean isGitRepo = GitDetector.isGitRepository(project);
                 
                 RepoGateApiClient.DependencyResponse response = client.checkDependency(
                         dependency.getPackageName(),
-                        dependency.getPackageManager()
+                        dependency.getPackageManager(),
+                        dependency.getVersion(),
+                        projectName,
+                        isGitRepo
                 );
 
                 String status = response.getStatus();
